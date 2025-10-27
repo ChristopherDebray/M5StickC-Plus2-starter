@@ -5,17 +5,22 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
+#include "./display_handler.h"
+#include "./rtc_utils.h" 
+
 class ClockHandler {
 private:
     m5::rtc_datetime_t dt;
     char timeBuffer[16];  // Buffer to store time, array of 16 caracters (string)
     char dateBuffer[16];  // Buffer to store date
-    
+    DisplayHandler* display;
 public:
     Preferences prefs;
+    static const int POMODORO_MINUTES = 25;
+    static const int CLOCK_REFRESH_MS = 1000;
 
     // Constructor
-    ClockHandler() {
+    ClockHandler(DisplayHandler* displayHandler) : display(displayHandler) {
         memset(timeBuffer, 0, sizeof(timeBuffer));
         memset(dateBuffer, 0, sizeof(dateBuffer));
     }
@@ -52,40 +57,58 @@ public:
         sprintf(dateBuffer, "%04d-%02d-%02d", dt.date.year, dt.date.month, dt.date.date);
         return dateBuffer;
     }
-    
-    // Draw clock on screen
+
     void drawClock(uint32_t remainSec = 0) {
         static uint32_t lastRemain = 9999;
         static uint8_t lastSec = 99;
         
         updateDateTime();
         
-        // Only redraw if seconds changed or pomodoro status changed
         if (dt.time.seconds != lastSec || remainSec != lastRemain) {
-            M5.Lcd.fillScreen(BLACK);
-            M5.Lcd.setTextColor(WHITE);
+            display->clearScreen();
             
-            // Display time
-            M5.Lcd.setTextSize(4);
-            M5.Lcd.setCursor(5, 30);
-            M5.Lcd.print(getCurrentFullTime());
+            // Display time using DisplayHandler
+            display->displayMainTitle(getCurrentFullTime());
             
             // Display date
-            M5.Lcd.setTextSize(3);
-            M5.Lcd.setCursor(10, 80);
-            M5.Lcd.print(getCurrentFullDateFR());
+            display->displaySubtitle(getCurrentFullDateFR());
             
             // Display Pomodoro if active
             if (remainSec > 0) {
-                M5.Lcd.setTextSize(2);
-                M5.Lcd.setTextColor(GREEN);
-                M5.Lcd.setCursor(10, 120);
-                M5.Lcd.printf("Pomo: %02u:%02u", remainSec / 60, remainSec % 60);
+                char pomoText[32];
+                sprintf(pomoText, "Pomo: %02u:%02u", remainSec / 60, remainSec % 60);
+                display->displayInfoMessage(pomoText);
             }
             
             lastSec = dt.time.seconds;
             lastRemain = remainSec;
         }
+    }
+
+    void armPomodoroAndSleep() {
+        display->clearScreen();
+        display->displayMainTitle("Pomodoro", MSG_SUCCESS);
+        // M5.Lcd.fillScreen(BLACK);
+        // M5.Lcd.setTextSize(3);
+        // M5.Lcd.setTextColor(GREEN);
+        // M5.Lcd.setCursor(20, 40);
+        // M5.Lcd.println("Pomodoro");
+        // M5.Lcd.setCursor(30, 75);
+        // M5.Lcd.printf("%u min", POMODORO_MINUTES);
+        // M5.Lcd.setCursor(40, 110);
+        // M5.Lcd.println("Zzz...");
+        delay(1500);
+        
+        armTimerAndSleep(POMODORO_MINUTES);
+    }
+
+    void armTimerAndSleep(uint32_t minutes) {
+        uint32_t now = rtcEpochNow();
+        uint32_t target = now + minutes * 60;
+        writeTarget(target);
+
+        uint64_t us = (uint64_t)minutes * 60ULL * 1000000ULL;
+        BatteryHandler::M5deepSleep(us);
     }
 
     void writeTarget(uint32_t epoch) {

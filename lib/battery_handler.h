@@ -3,6 +3,11 @@
 
 #include <M5StickCPlus2.h>
 #include <Arduino.h>
+#include <esp_wifi.h>
+#include <esp_sleep.h>
+#include <driver/gpio.h>
+
+#include "./display_handler.h"
 
 class BatteryHandler {
 private:
@@ -10,13 +15,14 @@ private:
   int32_t bl;
   int16_t bv;
   m5::Power_Class::is_charging_t ic;
-  
+  DisplayHandler* display;
   unsigned long lastUpdate;
   uint32_t updateInterval;
   
 public:
   // Constructor
-  BatteryHandler(uint32_t intervalMs = 5000) {
+  BatteryHandler(DisplayHandler* displayHandler, uint32_t intervalMs = 5000) : display(displayHandler) {
+    display = displayHandler;
     bc = 0;
     bl = 0;
     bv = 0;
@@ -47,6 +53,26 @@ public:
     bv = M5.Power.getBatteryVoltage();
     ic = M5.Power.isCharging();
   }
+
+  static void M5deepSleep(uint64_t microseconds = 0) {
+    // CRITICAL: Keep GPIO4 HIGH during deep sleep to maintain power
+    pinMode(4, OUTPUT);
+    digitalWrite(4, HIGH);
+    gpio_hold_en(GPIO_NUM_4);
+    gpio_deep_sleep_hold_en();
+    if (microseconds > 0) {
+        esp_sleep_enable_timer_wakeup(microseconds);
+    }
+    
+    esp_deep_sleep_start();
+  }
+
+  void cutAllNonCore() {
+    esp_wifi_stop();
+    btStop();
+    M5.Speaker.end();
+    M5.Lcd.sleep();
+  }
   
   // Getters
   int32_t getCurrent() { return bc; }
@@ -56,15 +82,8 @@ public:
   
   // Display battery info on screen
   void displayInfo() {
-    // M5.Display.setCursor(200, 0);
-    // M5.Display.setTextSize(2);
-    // M5.Display.printf("Battery: %d%%\n", bl);
-    // M5.Display.printf("Voltage: %dmV\n", bv);
-    // M5.Display.printf("%s\n", isCharging() ? "Charging" : "Battery");
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(210, 5);
-    M5.Lcd.setTextColor(getBatteryDisplayColor(bl));
-    M5.Lcd.printf("%d%%", bl);
+    display->displayBatteryLevel(bl, getBatteryDisplayColor(bl), isCharging());
+    
   }
 
   int getBatteryDisplayColor(int32_t batteryLevel) {

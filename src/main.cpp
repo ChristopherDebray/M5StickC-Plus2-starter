@@ -5,37 +5,22 @@
 #include "../lib/power_utils.h"
 #include "../lib/button_handler.h"
 #include "../lib/tap_handler.h"
+#include "../lib/battery_handler.h"
+#include "../lib/clock_handler.h"
 #include "../lib/rtc_utils.h"
 
 // ---------- Settings ----------
-#define POMO_MINUTES       25
+#define POMO_MINUTES       1
 #define CLOCK_REFRESH_MS   1000
 // ------------------------------
 
 Preferences prefs;
-RTC_DATA_ATTR uint8_t bootCounter = 0;
 
 // Handlers
+ClockHandler clockHandler;  
+BatteryHandler batteryHandler;
 ButtonHandler btnB(1, 400);  // Button B, 400ms double-click
 TapHandler tapDetector(1.5, 300, 3);  // 1.5G threshold, 300ms timeout, 3 taps
-
-// Pomodoro target (epoch sec) persisted
-uint32_t readTarget() {
-  prefs.begin("clock", true);
-  uint32_t v = prefs.getUInt("target", 0);
-  prefs.end();
-  return v;
-}
-
-void writeTarget(uint32_t epoch) {
-  prefs.begin("clock", false);
-  prefs.putUInt("target", epoch);
-  prefs.end();
-}
-
-void clearTarget() { 
-  writeTarget(0); 
-}
 
 void drawClock(uint32_t remainSec = 0) {
   static uint32_t lastRemain = 9999;
@@ -59,7 +44,7 @@ void drawClock(uint32_t remainSec = 0) {
     sprintf(ymd, "%02d-%02d-%04d", dt.date.date, dt.date.month, dt.date.year);
     M5.Lcd.setCursor(10, 80);
     M5.Lcd.print(ymd);
-    
+
     if (remainSec > 0) {
       M5.Lcd.setTextSize(2);
       M5.Lcd.setTextColor(GREEN);
@@ -76,7 +61,7 @@ void beepAlarm() {
   M5.Speaker.begin();
   M5.Speaker.setVolume(1.0f);
   for (int i = 0; i < 8; ++i) {
-    M5.Speaker.tone(2500, 200);
+    M5.Speaker.tone(2500, 100);
     delay(250);
   }
   M5.Speaker.end();
@@ -108,7 +93,7 @@ void showClock10sThenSleep() {
 void armAndSleep(uint32_t minutes) {
   uint32_t now = rtcEpochNow();
   uint32_t target = now + minutes * 60;
-  writeTarget(target);
+  clockHandler.writeTarget(target);
 
   M5.Lcd.fillScreen(BLACK);
   M5.Lcd.setTextSize(3);
@@ -149,19 +134,19 @@ void onTripleTap(int tapCount) {
 void setup() {
   M5.begin();
   M5.Lcd.setRotation(3);
-  bootCounter++;
 
   // Initialize handlers
   btnB.onDoubleClick(onButtonDoubleClick);
   tapDetector.begin();
   tapDetector.onTaps(onTripleTap);
+  batteryHandler.begin();
 
   // UNCOMMENT TO SET TIME
   // setRTCTime(14, 30, 0, 2025, 10, 27, 1);
 
   // End of Pomodoro?
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
-    clearTarget();
+    clockHandler.clearTarget();
     beepAlarm();
     showClock10sThenSleep();
   }
@@ -178,22 +163,12 @@ void loop() {
   // Update handlers
   btnB.update();
   tapDetector.update();
-
-  // Display remaining time if Pomodoro is armed
-  uint32_t tgt = readTarget();
-  uint32_t remain = 0;
-  if (tgt) {
-    uint32_t nowE = rtcEpochNow();
-    if (nowE < tgt) {
-      remain = tgt - nowE;
-    } else {
-      clearTarget();
-    }
-  }
+  batteryHandler.update();
+  batteryHandler.displayInfo();
 
   static unsigned long tRef = 0;
-  if (millis() - tRef > CLOCK_REFRESH_MS) {
-    drawClock(remain);
+  if (millis() - tRef > 1000) {
+    clockHandler.drawClock(0);
     tRef = millis();
   }
 

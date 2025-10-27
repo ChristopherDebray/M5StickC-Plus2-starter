@@ -31,8 +31,6 @@ public:
   
   // Initialize IMU
   void begin() {
-    printf("BEGIN TAP HANDLER");
-    M5.Lcd.fillScreen(RED);
     M5.Imu.begin();
   }
   

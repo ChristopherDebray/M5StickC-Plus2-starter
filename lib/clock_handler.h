@@ -117,6 +117,13 @@ public:
         prefs.end();
     }
 
+    uint32_t readTarget() {
+        prefs.begin("clock", true);
+        uint32_t v = prefs.getUInt("target", 0);
+        prefs.end();
+        return v;
+    }
+
     void clearTarget() { 
         writeTarget(0); 
     }

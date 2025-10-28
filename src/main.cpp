@@ -2,96 +2,107 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
-#include "../lib/button_handler.h"
-#include "../lib/tap_handler.h"
-#include "../lib/battery_handler.h"
-#include "../lib/clock_handler.h"
 #include "../lib/display_handler.h"
+#include "../lib/battery_handler.h"
 #include "../lib/rtc_utils.h"
-
-// ---------- Settings ----------
-#define POMO_MINUTES       1
-#define CLOCK_REFRESH_MS   1000
-// ------------------------------
+#include "../lib/clock_handler.h"
+#include "../lib/page_manager.h"
+#include "../lib/pages/clock_page.h"
 
 Preferences prefs;
 
-// Handlers
 DisplayHandler displayHandler;
 ClockHandler clockHandler(&displayHandler);
 BatteryHandler batteryHandler(&displayHandler);
-ButtonHandler btnB(1, 400);  // Button B, 400ms double-click
-TapHandler tapDetector(1.5, 300, 3);  // 1.5G threshold, 300ms timeout, 3 taps
+
+PageManager pageManager;
+ClockPage clockPage(&displayHandler, &clockHandler, &batteryHandler);
+
+// Button B long press tracking
+unsigned long btnBPressStart = 0;
+const unsigned long LONG_PRESS_DURATION = 800;
+bool btnBLongPressTriggered = false;
 
 void beepAlarm() {
   M5.Speaker.begin();
   M5.Speaker.setVolume(1.0f);
   for (int i = 0; i < 8; ++i) {
-    M5.Speaker.tone(2500, 100);
+    M5.Speaker.tone(2500, 200);
     delay(250);
   }
   M5.Speaker.end();
 }
 
-// ========== CALLBACKS ==========
-
-void onButtonDoubleClick() {
-  clockHandler.armPomodoroAndSleep();
-}
-
-void onTripleTap(int tapCount) {
-  M5.Lcd.fillScreen(BLUE);
-  M5.Lcd.setTextColor(WHITE);
-  M5.Lcd.setTextSize(3);
-  M5.Lcd.setCursor(20, 60);
-  M5.Lcd.printf("%d TAPS!", tapCount);
-  M5.Speaker.tone(2500, 100);
-  delay(1000);
-  M5.Lcd.fillScreen(BLACK);
-  clockHandler.drawClock(0);
-}
-
-// ========== SETUP ==========
-
 void setup() {
   M5.begin();
   M5.Lcd.setRotation(3);
+  Serial.begin(115200);
 
-  // Initialize handlers
-  btnB.onDoubleClick(onButtonDoubleClick);
-  tapDetector.begin();
-  tapDetector.onTaps(onTripleTap);
   batteryHandler.begin();
 
-  // UNCOMMENT TO SET TIME
-  // setRTCTime(14, 30, 0, 2025, 10, 27, 1);
+  pageManager.addPage(&clockPage);
 
-  // End of Pomodoro?
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
     clockHandler.clearTarget();
     beepAlarm();
   }
 
-  M5.Lcd.fillScreen(BLACK);
-  clockHandler.drawClock(0);
+  pageManager.begin();
+  Serial.println("System ready!");
 }
-
-// ========== LOOP ==========
 
 void loop() {
   M5.update();
   
-  // Update handlers
-  btnB.update();
-  tapDetector.update();
-  batteryHandler.update();
-  batteryHandler.displayInfo();
-
-  static unsigned long tRef = 0;
-  if (millis() - tRef > 1000) {
-    clockHandler.drawClock(0);
-    tRef = millis();
+  PageBase* currentPage = pageManager.getCurrentPage();
+  bool menuActive = currentPage->hasActiveMenu();
+  
+  if (M5.BtnPWR.wasPressed()) {
+    if (menuActive) {
+      currentPage->navigateMenuUp();
+    } else {
+      pageManager.previousPage();
+    }
   }
+  
+  if (M5.BtnA.wasPressed()) {
+    if (menuActive) {
+      currentPage->selectMenuItem();
+    } else {
+      if (pageManager.getCurrentPageIndex() == 0) {
+        ClockPage* cp = static_cast<ClockPage*>(currentPage);
+        cp->openMenu();
+      }
+    }
+  }
+  
+  if (M5.BtnB.wasPressed()) {
+    btnBPressStart = millis();
+    btnBLongPressTriggered = false;
+  }
+  
+  if (M5.BtnB.isPressed()) {
+    unsigned long pressDuration = millis() - btnBPressStart;
+    
+    if (pressDuration >= LONG_PRESS_DURATION && !btnBLongPressTriggered) {
+      // LONG PRESS = CLOSE MENU / BACK
+      if (menuActive) {
+        currentPage->closeMenu();
+      }
+      btnBLongPressTriggered = true;
+    }
+  }
+  
+  if (M5.BtnB.wasReleased()) {
+    if (!btnBLongPressTriggered && menuActive) {
+      // SHORT PRESS = Navigate UP
+      currentPage->navigateMenuDown();
+    }
+  }
+  
+  // Update
+  batteryHandler.update();
+  pageManager.update();
 
   delay(10);
 }

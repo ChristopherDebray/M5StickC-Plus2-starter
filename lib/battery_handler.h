@@ -1,7 +1,7 @@
 #ifndef BATTERY_HANDLER_H
 #define BATTERY_HANDLER_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 #include <esp_wifi.h>
 #include <esp_sleep.h>
@@ -71,7 +71,7 @@ public:
     esp_wifi_stop();
     btStop();
     M5.Speaker.end();
-    M5.Lcd.sleep();
+    M5.Display.sleep();
   }
   
   // Getters

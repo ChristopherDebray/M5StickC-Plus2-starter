@@ -1,4 +1,4 @@
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 #include <Preferences.h>
 
@@ -34,8 +34,9 @@ void beepAlarm() {
 }
 
 void setup() {
-  M5.begin();
-  M5.Lcd.setRotation(3);
+  auto cfg = M5.config();
+  M5.begin(cfg);
+  M5.Display.setRotation(3);
   Serial.begin(115200);
 
   batteryHandler.begin();

@@ -1,7 +1,7 @@
 #ifndef MENU_MANAGER_H
 #define MENU_MANAGER_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 #include "./display_handler.h"
 #include "./menu_handler.h"

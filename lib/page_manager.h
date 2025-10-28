@@ -1,7 +1,7 @@
 #ifndef PAGE_MANAGER_H
 #define PAGE_MANAGER_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 #include "./pages/page_base.h"
 

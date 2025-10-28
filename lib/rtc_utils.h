@@ -1,7 +1,7 @@
 #ifndef RTC_UTILS_H
 #define RTC_UTILS_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 
 // Get current epoch time from hardware RTC

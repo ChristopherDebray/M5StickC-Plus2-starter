@@ -1,7 +1,7 @@
 #ifndef BUTTON_HANDLER_H
 #define BUTTON_HANDLER_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 
 // Button handler class with callback support

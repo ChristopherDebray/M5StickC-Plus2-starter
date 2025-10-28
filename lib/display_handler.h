@@ -1,7 +1,7 @@
 #ifndef DISPLAY_HANDLER_H
 #define DISPLAY_HANDLER_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 
 // Display zones and positions
@@ -104,89 +104,89 @@ public:
     
     // Clear entire screen
     void clearScreen() {
-        M5.Lcd.fillScreen(BLACK);
+        M5.Display.fillScreen(BLACK);
     }
     
     // Flash screen with color
     void flashScreen(uint16_t color, int durationMs = 200) {
-        M5.Lcd.fillScreen(color);
+        M5.Display.fillScreen(color);
         delay(durationMs);
         clearScreen();
     }
     
     // Display main title (big, centered)
     void displayMainTitle(const char* text, MessageType type = MSG_NORMAL) {
-        M5.Lcd.setTextSize(SIZE_TITLE);
-        M5.Lcd.setTextColor(getColorForType(type));
+        M5.Display.setTextSize(SIZE_TITLE);
+        M5.Display.setTextColor(getColorForType(type));
         
         int textWidth = strlen(text) * 6 * SIZE_TITLE; // Approximate
         int x = getXForZone(ZONE_CENTER, textWidth);
         int y = getYForZone(ZONE_CENTER) - 20;
         
-        M5.Lcd.setCursor(x, y);
-        M5.Lcd.print(text);
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
     }
     
     // Display subtitle (below main title)
     void displaySubtitle(const char* text, MessageType type = MSG_NORMAL) {
-        M5.Lcd.setTextSize(SIZE_SUBTITLE);
-        M5.Lcd.setTextColor(getColorForType(type));
+        M5.Display.setTextSize(SIZE_SUBTITLE);
+        M5.Display.setTextColor(getColorForType(type));
         
         int textWidth = strlen(text) * 6 * SIZE_SUBTITLE;
         int x = getXForZone(ZONE_CENTER, textWidth);
         int y = getYForZone(ZONE_CENTER) + 20;
         
-        M5.Lcd.setCursor(x, y);
-        M5.Lcd.print(text);
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
     }
     
     // Display info message at top
     void displayInfoMessage(const char* text, MessageType type = MSG_INFO) {
-        M5.Lcd.setTextSize(SIZE_BODY);
-        M5.Lcd.setTextColor(getColorForType(type));
+        M5.Display.setTextSize(SIZE_BODY);
+        M5.Display.setTextColor(getColorForType(type));
         
         int textWidth = strlen(text) * 6 * SIZE_BODY;
         int x = getXForZone(ZONE_TOP_CENTER, textWidth);
         int y = getYForZone(ZONE_TOP_CENTER);
         
-        M5.Lcd.setCursor(x, y);
-        M5.Lcd.print(text);
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
     }
     
     // Display status at bottom
     void displayStatus(const char* text, MessageType type = MSG_NORMAL) {
-        M5.Lcd.setTextSize(SIZE_BODY);
-        M5.Lcd.setTextColor(getColorForType(type));
+        M5.Display.setTextSize(SIZE_BODY);
+        M5.Display.setTextColor(getColorForType(type));
         
         int textWidth = strlen(text) * 6 * SIZE_BODY;
         int x = getXForZone(ZONE_BOTTOM_CENTER, textWidth);
         int y = getYForZone(ZONE_BOTTOM_CENTER);
         
-        M5.Lcd.setCursor(x, y);
-        M5.Lcd.print(text);
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
     }
     
     // Display text at specific zone
     void displayText(const char* text, DisplayZone zone, 
                     int textSize = 2, MessageType type = MSG_NORMAL) {
-        M5.Lcd.setTextSize(textSize);
-        M5.Lcd.setTextColor(getColorForType(type));
+        M5.Display.setTextSize(textSize);
+        M5.Display.setTextColor(getColorForType(type));
         
         int textWidth = strlen(text) * 6 * textSize;
         int x = getXForZone(zone, textWidth);
         int y = getYForZone(zone);
         
-        M5.Lcd.setCursor(x, y);
-        M5.Lcd.print(text);
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
     }
     
     // Display text at custom position
     void displayTextAt(const char* text, int x, int y, 
                       int textSize = 2, MessageType type = MSG_NORMAL) {
-        M5.Lcd.setTextSize(textSize);
-        M5.Lcd.setTextColor(getColorForType(type));
-        M5.Lcd.setCursor(x, y);
-        M5.Lcd.print(text);
+        M5.Display.setTextSize(textSize);
+        M5.Display.setTextColor(getColorForType(type));
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
     }
     
     // Display formatted text (like printf)
@@ -203,14 +203,14 @@ public:
     
     // Display battery indicator (small, top right)
     void displayBatteryLevel(int level, int color, bool isCharging = false) {
-        M5.Lcd.setTextSize(SIZE_SMALL);
-        M5.Lcd.setTextColor(color ? color : WHITE);
-        M5.Lcd.setCursor(SCREEN_WIDTH - 40, 5);
-        M5.Lcd.printf("%d%%", level);
+        M5.Display.setTextSize(SIZE_SMALL);
+        M5.Display.setTextColor(color ? color : WHITE);
+        M5.Display.setCursor(SCREEN_WIDTH - 40, 5);
+        M5.Display.printf("%d%%", level);
         
         if (isCharging) {
-            M5.Lcd.setCursor(SCREEN_WIDTH - 15, 5);
-            M5.Lcd.print("+");
+            M5.Display.setCursor(SCREEN_WIDTH - 15, 5);
+            M5.Display.print("+");
         }
     }
     

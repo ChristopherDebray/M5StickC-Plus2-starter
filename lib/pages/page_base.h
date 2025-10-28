@@ -1,7 +1,7 @@
 #ifndef PAGE_BASE_H
 #define PAGE_BASE_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 #include "../display_handler.h"
 #include "../menu_manager.h"

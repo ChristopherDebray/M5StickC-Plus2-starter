@@ -1,7 +1,7 @@
 #ifndef MENU_HANDLER_H
 #define MENU_HANDLER_H
 
-#include <M5StickCPlus2.h>
+#include <M5Unified.h>
 #include <Arduino.h>
 #include "./display_handler.h"
 
@@ -118,7 +118,7 @@ public:
             
             // Draw selection indicator + highlight
             if (itemIndex == selectedIndex) {
-                M5.Lcd.fillRect(0, y - 2, 240, ITEM_HEIGHT, DARKGREY);
+                M5.Display.fillRect(0, y - 2, 240, ITEM_HEIGHT, DARKGREY);
                 display->displayTextAt(">", 5, y, TEXT_SIZE, MSG_SUCCESS);
             }
             

@@ -14,6 +14,7 @@ protected:
     DisplayHandler* display;
     MenuManager* menuManager;
     MenuHandler* mainMenu;
+    SettingsManager* settings;
     
     // Button B long press tracking
     unsigned long btnBPressStart;
@@ -57,6 +58,7 @@ public:
         : initialized(false), display(disp) {
         menuManager = new MenuManager(disp);
         mainMenu = new MenuHandler(disp, menuTitle);
+        settings = SettingsManager::getInstance();
         btnBPressStart = 0;
         btnBLongPressTriggered = false;
     }
@@ -84,16 +86,19 @@ public:
     void handleInput() {
         // Button PWR
         if (M5.BtnPWR.wasPressed()) {
+            settings->resetInactivityTimer();
             onButtonPWRPressed();
         }
         
         // Button A
         if (M5.BtnA.wasPressed()) {
+            settings->resetInactivityTimer();
             onButtonAPressed();
         }
         
         // Button B with long press detection
         if (M5.BtnB.wasPressed()) {
+            settings->resetInactivityTimer();
             btnBPressStart = millis();
             btnBLongPressTriggered = false;
         }

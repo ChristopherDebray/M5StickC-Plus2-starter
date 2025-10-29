@@ -8,6 +8,8 @@
 class SettingsManager {
 private:
     static SettingsManager* instance;
+    unsigned long lastActionTime;
+    unsigned long timeForAutoDeepSleep;
     Preferences prefs;
     
     // Settings cache read only ONCE on startup
@@ -41,26 +43,21 @@ public:
         
         // Load UI settings
         cache.uiSound = prefs.getBool("ui_sound", true);
-        cache.brightness = prefs.getUChar("brightness", 128);
         
         // Load time settings (not used yet)
         cache.time24h = prefs.getBool("time_24h", true);
         
-        // Load power settings (not used yet)
-        cache.autoSleep = prefs.getBool("auto_sleep", false);
-        cache.autoSleepDelay = prefs.getUShort("sleep_delay", 30);
+        cache.autoSleep = prefs.getBool("auto_sleep", true);
+        cache.autoSleepDelay = prefs.getUShort("sleep_delay", 15);
         
+        resetInactivityTimer();
         prefs.end();
     }
     
     // GETTERS (just read the cache)
     
     bool getUiSound() { return cache.uiSound; }
-    uint8_t getBrightness() { return cache.brightness; }
     bool getTime24h() { return cache.time24h; }
-    uint8_t getPomodoroMinutes() { return cache.pomodoroMinutes; }
-    uint8_t getShortBreakMinutes() { return cache.shortBreakMinutes; }
-    uint8_t getLongBreakMinutes() { return cache.longBreakMinutes; }
     bool getAutoSleep() { return cache.autoSleep; }
     uint16_t getAutoSleepDelay() { return cache.autoSleepDelay; }
     
@@ -103,6 +100,26 @@ public:
         
         // Reload defaults
         begin();
+    }
+
+    void resetInactivityTimer() {
+        lastActionTime = millis();
+        timeForAutoDeepSleep = millis() + (cache.autoSleepDelay * 1000UL);
+    }
+
+    bool shouldGoToSleep() {
+        if (!cache.autoSleep) {
+            return false;
+        }
+        
+        unsigned long now = millis();
+        
+        if (now < lastActionTime) {
+            resetInactivityTimer();
+            return false;
+        }
+        
+        return now >= timeForAutoDeepSleep;
     }
     
     // Debug: print all settings

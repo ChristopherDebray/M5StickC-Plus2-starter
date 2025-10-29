@@ -9,6 +9,14 @@
 
 #include "./display_handler.h"
 
+// Button A = GPIO 37 (LOW when pressed)
+// Button B = GPIO 39 (LOW when pressed)
+// Button PWR = GPIO 35
+#define BUTTON_A_GPIO GPIO_NUM_37
+
+// Can add other button with | (1ULL << GPIO_NUM_39) for B
+#define WAKEUP_BUTTON_MASK (1ULL << BUTTON_A_GPIO)
+
 class BatteryHandler {
 private:
   int32_t bc;
@@ -63,6 +71,8 @@ public:
     if (microseconds > 0) {
         esp_sleep_enable_timer_wakeup(microseconds);
     }
+
+    esp_sleep_enable_ext1_wakeup(WAKEUP_BUTTON_MASK, ESP_EXT1_WAKEUP_ALL_LOW);
     
     esp_deep_sleep_start();
   }

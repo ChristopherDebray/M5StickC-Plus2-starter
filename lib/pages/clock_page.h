@@ -10,7 +10,6 @@ class ClockPage : public PageBase {
 private:
     ClockHandler* clockHandler;
     BatteryHandler* batteryHandler;
-    SettingsManager* settings;
     
     unsigned long lastClockUpdate;
     uint32_t clockRefreshInterval;
@@ -101,8 +100,6 @@ public:
           clockHandler(clock),
           batteryHandler(battery),
           settingsMenu(nullptr) {
-        
-        settings = SettingsManager::getInstance();
         
         lastClockUpdate = 0;
         clockRefreshInterval = 1000;

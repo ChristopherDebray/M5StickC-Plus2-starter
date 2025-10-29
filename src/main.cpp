@@ -15,8 +15,8 @@ ClockHandler clockHandler(&displayHandler);
 BatteryHandler batteryHandler(&displayHandler);
 
 PageManager pageManager;
-ClockPage clockPage(&displayHandler, &clockHandler, &batteryHandler);
 SettingsManager* settings;
+ClockPage* clockPage = nullptr;
 
 void beepAlarm() {
   M5.Speaker.begin();
@@ -34,9 +34,12 @@ void setup() {
   M5.Display.setRotation(3);
   Serial.begin(115200);
   
-  SettingsManager::getInstance()->begin();
+  settings = SettingsManager::getInstance();
+  settings->begin();
   batteryHandler.begin();
-  pageManager.addPage(&clockPage);
+
+  clockPage = new ClockPage(&displayHandler, &clockHandler, &batteryHandler);
+  pageManager.addPage(clockPage);
 
   // @todo add a tag system using pref maybe to allow for different actions based of tags
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
@@ -56,6 +59,8 @@ void loop() {
   
   // Update global handlers
   batteryHandler.update();
-
+  if (settings->shouldGoToSleep()) {
+    batteryHandler.M5deepSleep();
+  }
   delay(10);
 }

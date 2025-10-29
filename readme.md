@@ -14,7 +14,7 @@ The goal is to eliminate the "boring but necessary" setup work, so you can dive 
 
 - **M5StickC-Plus2** device
 - **VSCode** with **PlatformIO** extension
-- M5StickCPlus2 library (automatically installed via PlatformIO)
+- M5Unified library (automatically installed via PlatformIO)
 
 ⚠️ **Note**: This project is specifically designed for the **M5StickC-Plus2** and is not compatible with the older M5StickC-Plus or other M5Stack devices.
 
@@ -32,7 +32,7 @@ The goal is to eliminate the "boring but necessary" setup work, so you can dive 
 
 ### Hardware Buttons
 
-For clarity and consistency with the M5StickCPlus2 library documentation:
+For clarity and consistency with the M5Unified library documentation:
 ```
       ______PWR               (Side button, near button A)
                     A         (Front button, next to screen)
@@ -286,7 +286,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 ## 🙏 Acknowledgments
 
-- M5Stack for the M5StickCPlus2 library
+- M5Stack for the M5Unified library
 - The PlatformIO team for their excellent development platform
 
 ---

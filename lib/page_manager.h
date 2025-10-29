@@ -86,6 +86,26 @@ public:
             currentPage->loop();
         }
     }
+
+    // Handle inputs - delegates to current page or handles page navigation
+    void handleInput() {
+        if (currentPage == nullptr || transitionInProgress) return;
+        
+        if (!currentPage->hasActiveMenu()) {
+            if (M5.BtnPWR.wasPressed()) {
+                previousPage();
+                return;
+            }
+    
+            if (M5.BtnB.wasPressed()) {
+                nextPage();
+                return;
+            }
+        }
+        
+        // Otherwise, let the page handle input
+        currentPage->handleInput();
+    }
     
     // Getters
     int getCurrentPageIndex() { return currentPageIndex; }

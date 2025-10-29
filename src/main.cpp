@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Preferences.h>
 
+#include "../lib/settings_manager.h"
 #include "../lib/display_handler.h"
 #include "../lib/battery_handler.h"
 #include "../lib/rtc_utils.h"
@@ -9,19 +10,13 @@
 #include "../lib/page_manager.h"
 #include "../lib/pages/clock_page.h"
 
-Preferences prefs;
-
 DisplayHandler displayHandler;
 ClockHandler clockHandler(&displayHandler);
 BatteryHandler batteryHandler(&displayHandler);
 
 PageManager pageManager;
 ClockPage clockPage(&displayHandler, &clockHandler, &batteryHandler);
-
-// Button B long press tracking
-unsigned long btnBPressStart = 0;
-const unsigned long LONG_PRESS_DURATION = 800;
-bool btnBLongPressTriggered = false;
+SettingsManager* settings;
 
 void beepAlarm() {
   M5.Speaker.begin();
@@ -38,72 +33,29 @@ void setup() {
   M5.begin(cfg);
   M5.Display.setRotation(3);
   Serial.begin(115200);
-
+  
+  SettingsManager::getInstance()->begin();
   batteryHandler.begin();
-
   pageManager.addPage(&clockPage);
 
+  // @todo add a tag system using pref maybe to allow for different actions based of tags
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
     clockHandler.clearTarget();
     beepAlarm();
   }
 
   pageManager.begin();
-  Serial.println("System ready!");
 }
 
 void loop() {
   M5.update();
   
-  PageBase* currentPage = pageManager.getCurrentPage();
-  bool menuActive = currentPage->hasActiveMenu();
-  
-  if (M5.BtnPWR.wasPressed()) {
-    if (menuActive) {
-      currentPage->navigateMenuUp();
-    } else {
-      pageManager.previousPage();
-    }
-  }
-  
-  if (M5.BtnA.wasPressed()) {
-    if (menuActive) {
-      currentPage->selectMenuItem();
-    } else {
-      if (pageManager.getCurrentPageIndex() == 0) {
-        ClockPage* cp = static_cast<ClockPage*>(currentPage);
-        cp->openMenu();
-      }
-    }
-  }
-  
-  if (M5.BtnB.wasPressed()) {
-    btnBPressStart = millis();
-    btnBLongPressTriggered = false;
-  }
-  
-  if (M5.BtnB.isPressed()) {
-    unsigned long pressDuration = millis() - btnBPressStart;
-    
-    if (pressDuration >= LONG_PRESS_DURATION && !btnBLongPressTriggered) {
-      // LONG PRESS = CLOSE MENU / BACK
-      if (menuActive) {
-        currentPage->closeMenu();
-      }
-      btnBLongPressTriggered = true;
-    }
-  }
-  
-  if (M5.BtnB.wasReleased()) {
-    if (!btnBLongPressTriggered && menuActive) {
-      // SHORT PRESS = Navigate UP
-      currentPage->navigateMenuDown();
-    }
-  }
-  
-  // Update
-  batteryHandler.update();
+  // PageManager handles everything: input routing and page updates
+  pageManager.handleInput();
   pageManager.update();
+  
+  // Update global handlers
+  batteryHandler.update();
 
   delay(10);
 }

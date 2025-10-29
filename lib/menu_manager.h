@@ -31,7 +31,6 @@ public:
     // Push a new menu onto the stack (open menu)
     bool pushMenu(MenuHandler* menu) {
         if (stackSize >= MAX_MENU_STACK) {
-            Serial.println("MenuManager: Stack full!");
             return false;
         }
         
@@ -42,14 +41,12 @@ public:
         // Draw the new menu
         menu->draw();
         
-        Serial.printf("MenuManager: Pushed menu (stack size: %d)\n", stackSize);
         return true;
     }
     
     // Pop current menu from stack (close menu / go back)
     bool popMenu() {
         if (stackSize <= 0) {
-            Serial.println("MenuManager: Stack empty!");
             isActive = false;
             return false;
         }
@@ -65,7 +62,6 @@ public:
             display->clearScreen();
         }
         
-        Serial.printf("MenuManager: Popped menu (stack size: %d)\n", stackSize);
         return true;
     }
     

@@ -18,11 +18,11 @@ enum DisplayZone {
 
 // Message types with associated colors
 enum MessageType {
-    MSG_INFO,      // Blue
-    MSG_SUCCESS,   // Green
-    MSG_WARNING,   // Yellow/Orange
-    MSG_ERROR,     // Red
-    MSG_NORMAL     // White
+    MSG_INFO,
+    MSG_SUCCESS,
+    MSG_WARNING,
+    MSG_ERROR,
+    MSG_NORMAL
 };
 
 class DisplayHandler {
@@ -30,9 +30,11 @@ private:
     // Screen dimensions (M5StickCPlus2 in rotation 3)
     const int SCREEN_WIDTH = 240;
     const int SCREEN_HEIGHT = 135;
+
+    const int MARGIN = 10;
     
     // Predefined zones (Y positions)
-    const int ZONE_TOP_Y = 10;
+    const int ZONE_TOP_Y = MARGIN;
     const int ZONE_CENTER_Y = 60;
     const int ZONE_BOTTOM_Y = 110;
     
@@ -41,6 +43,8 @@ private:
     const int SIZE_SUBTITLE = 3;
     const int SIZE_BODY = 2;
     const int SIZE_SMALL = 1;
+
+    const uint16_t BACKGROUND_COLOR = BLACK;
     
     // Colors by message type
     uint16_t getColorForType(MessageType type) {
@@ -59,7 +63,7 @@ private:
         switch(zone) {
             case ZONE_TOP_LEFT:
             case ZONE_BOTTOM_LEFT:
-                return 10;
+                return MARGIN;
             
             case ZONE_TOP_CENTER:
             case ZONE_CENTER:
@@ -68,7 +72,7 @@ private:
             
             case ZONE_TOP_RIGHT:
             case ZONE_BOTTOM_RIGHT:
-                return SCREEN_WIDTH - textWidth - 10;
+                return SCREEN_WIDTH - textWidth - MARGIN;
             
             case ZONE_CUSTOM:
             default:
@@ -104,7 +108,7 @@ public:
     
     // Clear entire screen
     void clearScreen() {
-        M5.Display.fillScreen(BLACK);
+        M5.Display.fillScreen(BACKGROUND_COLOR);
     }
     
     // Flash screen with color

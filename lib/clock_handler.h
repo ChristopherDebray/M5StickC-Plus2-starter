@@ -88,15 +88,6 @@ public:
     void armPomodoroAndSleep() {
         display->clearScreen();
         display->displayMainTitle("Pomodoro", MSG_SUCCESS);
-        // M5.Display.fillScreen(BLACK);
-        // M5.Display.setTextSize(3);
-        // M5.Display.setTextColor(GREEN);
-        // M5.Display.setCursor(20, 40);
-        // M5.Display.println("Pomodoro");
-        // M5.Display.setCursor(30, 75);
-        // M5.Display.printf("%u min", POMODORO_MINUTES);
-        // M5.Display.setCursor(40, 110);
-        // M5.Display.println("Zzz...");
         delay(1500);
         
         armTimerAndSleep(POMODORO_MINUTES);

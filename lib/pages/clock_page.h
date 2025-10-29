@@ -4,73 +4,95 @@
 #include "page_base.h"
 #include "../clock_handler.h"
 #include "../battery_handler.h"
+#include "../settings_manager.h"
 
 class ClockPage : public PageBase {
 private:
     ClockHandler* clockHandler;
     BatteryHandler* batteryHandler;
+    SettingsManager* settings;
     
     unsigned long lastClockUpdate;
     uint32_t clockRefreshInterval;
     
-    // Sub-menus
     MenuHandler* settingsMenu;
     
-    // Menu callbacks (private methods)
+    // Buffers for dynamic labels
+    char soundLabel[32];
+    char timeFormatLabel[32];
+
+    void updateMenuLabels() {
+        sprintf(soundLabel, "UI Sound: %s", 
+                settings->getUiSound() ? "ON" : "OFF");
+        
+        sprintf(timeFormatLabel, "Time: %s", 
+                settings->getTime24h() ? "24h" : "12h");
+    }
+
+    void rebuildMainMenu() {
+        mainMenu->clear();
+        
+        mainMenu->addItem("Start Pomodoro", [this]() { onStartPomodoro(); });
+        mainMenu->addItem("Set Timer", [this]() { onSetTimer(); });
+        mainMenu->addItem("Settings", [this]() { onSettings(); });
+    }
+    
+    void rebuildSettingsMenu() {
+        if (!settingsMenu) {
+            settingsMenu = new MenuHandler(display, "Settings");
+        } else {
+            settingsMenu->clear();
+        }
+        
+        updateMenuLabels();
+        
+        settingsMenu->addItem(soundLabel, [this]() { onToggleSound(); });
+        settingsMenu->addItem(timeFormatLabel, [this]() { onToggleTimeFormat(); });
+    }
+    
     void onStartPomodoro() {
-        Serial.println("ClockMenu: Start Pomodoro");
         clockHandler->armPomodoroAndSleep();
     }
     
     void onSetTimer() {
-        Serial.println("ClockMenu: Set Timer");
-        // TODO: Timer configuration
+        display->showFullScreenMessage("Timer", "Coming soon", MSG_INFO, 1000);
+        if (mainMenu) mainMenu->draw();
     }
     
     void onSettings() {
-        Serial.println("ClockMenu: Settings");
-        
-        // Create settings submenu if not exists
-        if (!settingsMenu) {
-            settingsMenu = new MenuHandler(display, "Settings");
-            
-            // Use lambdas to capture 'this' and call member functions
-            settingsMenu->addItem("Display", [this]() { onSettingsDisplay(); });
-            settingsMenu->addItem("Sound", [this]() { onSettingsSound(); });
-            settingsMenu->addItem("Time Format", [this]() { onSettingsTimeFormat(); });
-            settingsMenu->addItem("Back", [this]() { 
-                // Close current menu
-                menuManager->popMenu();
-            });
-        }
-        
-        // Push submenu onto stack
+        rebuildSettingsMenu();
         menuManager->pushMenu(settingsMenu);
     }
     
-    void onSettingsDisplay() {
-        Serial.println("Settings: Display");
-        display->showFullScreenMessage("Display", "Brightness, rotation...", MSG_INFO, 1000);
+    void onToggleSound() {
+        bool current = settings->getUiSound();
+        settings->setUiSound(!current);
+        
+        display->showFullScreenMessage(
+            "UI Sound", 
+            current ? "OFF" : "ON", 
+            current ? MSG_ERROR : MSG_SUCCESS, 
+            800
+        );
+        
+        // Rebuild et redraw
+        rebuildSettingsMenu();
+        settingsMenu->draw();
     }
     
-    void onSettingsSound() {
-        Serial.println("Settings: Sound");
-        display->showFullScreenMessage("Sound", "Volume, tone...", MSG_INFO, 1000);
-    }
-    
-    void onSettingsTimeFormat() {
-        Serial.println("Settings: Time Format");
-        display->showFullScreenMessage("Time Format", "24h / 12h", MSG_INFO, 1000);
-    }
-    
-    void onStatistics() {
-        Serial.println("ClockMenu: Statistics");
-        display->showFullScreenMessage("Statistics", "Coming soon...", MSG_INFO, 1000);
-    }
-    
-    void onAbout() {
-        Serial.println("ClockMenu: About");
-        display->showFullScreenMessage("M5 Clock", "v1.0.0", MSG_INFO, 1500);
+    void onToggleTimeFormat() {
+        bool current = settings->getTime24h();
+        settings->setTime24h(!current);
+        
+        display->showFullScreenMessage(
+            "Time Format", 
+            current ? "12h" : "24h", 
+            MSG_INFO, 
+            800
+        );
+        
+        rebuildSettingsMenu();
+        settingsMenu->draw();
     }
     
 public:
@@ -80,15 +102,13 @@ public:
           batteryHandler(battery),
           settingsMenu(nullptr) {
         
+        settings = SettingsManager::getInstance();
+        
         lastClockUpdate = 0;
         clockRefreshInterval = 1000;
         
-        // Use lambdas with 'this' capture to call member functions
-        mainMenu->addItem("Start Pomodoro", [this]() { onStartPomodoro(); });
-        mainMenu->addItem("Set Timer", [this]() { onSetTimer(); });
-        mainMenu->addItem("Settings", [this]() { onSettings(); });
-        mainMenu->addItem("Statistics", [this]() { onStatistics(); });
-        mainMenu->addItem("About", [this]() { onAbout(); });
+        updateMenuLabels();
+        rebuildMainMenu();
     }
     
     ~ClockPage() {

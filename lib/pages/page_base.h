@@ -6,8 +6,8 @@
 #include "../display_handler.h"
 #include "../menu_manager.h"
 #include "../menu_handler.h"
+#include "../settings_manager.h"
 
-// Base class for all pages
 class PageBase {
 protected:
     bool initialized;
@@ -15,14 +15,50 @@ protected:
     MenuManager* menuManager;
     MenuHandler* mainMenu;
     
+    // Button B long press tracking
+    unsigned long btnBPressStart;
+    const unsigned long LONG_PRESS_DURATION = 800;
+    bool btnBLongPressTriggered;
+    
+    // Virtual methods for custom button behavior
+    
+    // Default: navigate menu down
+    virtual void onButtonPWRPressed() {
+        if (hasActiveMenu()) {
+            navigateMenuUp();
+        }
+    }
+    
+    // Default: select or open menu
+    virtual void onButtonAPressed() {
+        if (hasActiveMenu()) {
+            selectMenuItem();
+        } else {
+            openMenu();
+        }
+    }
+    
+    // Default: navigate menu up
+    virtual void onButtonBShortPress() {
+        if (hasActiveMenu()) {
+            navigateMenuDown();
+        }
+    }
+    
+    // Default: close menu
+    virtual void onButtonBLongPress() {
+        if (hasActiveMenu()) {
+            closeMenu();
+        }
+    }
+    
 public:
     PageBase(DisplayHandler* disp, const char* menuTitle = "Options") 
         : initialized(false), display(disp) {
-        // Create menu manager for this page
         menuManager = new MenuManager(disp);
-        
-        // Create default main menu (can be customized by child classes)
         mainMenu = new MenuHandler(disp, menuTitle);
+        btnBPressStart = 0;
+        btnBLongPressTriggered = false;
     }
     
     virtual ~PageBase() {
@@ -30,27 +66,55 @@ public:
         delete menuManager;
     }
     
-    // Called once when entering the page
     virtual void setup() = 0;
-    
-    // Called every loop iteration
     virtual void loop() = 0;
     
-    // Called once when leaving the page
     virtual void cleanup() {
         if (menuManager) {
             menuManager->closeAll();
         }
     }
     
-    // Page identification
     virtual const char* getName() = 0;
     
-    // Initialization
     bool isInitialized() { return initialized; }
     void setInitialized(bool value) { initialized = value; }
     
-    // Menu management (standardized for all pages)
+    // Input handling - called by PageManager
+    void handleInput() {
+        // Button PWR
+        if (M5.BtnPWR.wasPressed()) {
+            onButtonPWRPressed();
+        }
+        
+        // Button A
+        if (M5.BtnA.wasPressed()) {
+            onButtonAPressed();
+        }
+        
+        // Button B with long press detection
+        if (M5.BtnB.wasPressed()) {
+            btnBPressStart = millis();
+            btnBLongPressTriggered = false;
+        }
+        
+        if (M5.BtnB.isPressed()) {
+            unsigned long pressDuration = millis() - btnBPressStart;
+            
+            if (pressDuration >= LONG_PRESS_DURATION && !btnBLongPressTriggered) {
+                onButtonBLongPress();
+                btnBLongPressTriggered = true;
+            }
+        }
+        
+        if (M5.BtnB.wasReleased()) {
+            if (!btnBLongPressTriggered) {
+                onButtonBShortPress();
+            }
+        }
+    }
+    
+    // Menu management
     bool hasActiveMenu() {
         return menuManager && menuManager->hasActiveMenu();
     }
@@ -58,15 +122,18 @@ public:
     void openMenu() {
         if (!hasActiveMenu() && mainMenu) {
             menuManager->pushMenu(mainMenu);
-            M5.Speaker.tone(2500, 50);
+            if (SettingsManager::getInstance()->getUiSound()) {
+                M5.Speaker.tone(2500, 50);
+            }
         }
     }
     
     void closeMenu() {
         if (menuManager && menuManager->popMenu()) {
-            M5.Speaker.tone(2000, 50);
+            if (SettingsManager::getInstance()->getUiSound()) {
+                M5.Speaker.tone(2000, 50);
+            }
             
-            // If no more menus, redraw page
             if (!menuManager->hasActiveMenu()) {
                 setup();
             }
@@ -91,11 +158,8 @@ public:
         }
     }
     
-    // Access to menu manager for advanced usage
     MenuManager* getMenuManager() { return menuManager; }
     MenuHandler* getMainMenu() { return mainMenu; }
-    
-    // Access to display handler
     DisplayHandler* getDisplay() { return display; }
 };
 

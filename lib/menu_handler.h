@@ -4,8 +4,9 @@
 #include <M5Unified.h>
 #include <Arduino.h>
 #include "./display_handler.h"
+#include "./settings_manager.h"
 
-#define MAX_MENU_ITEMS 20
+#define MAX_MENU_ITEMS 10
 
 struct MenuItem {
     const char* label;
@@ -67,7 +68,9 @@ public:
                 scrollOffset = selectedIndex;
             }
             
-            // M5.Speaker.tone(2000, 30);
+            if (SettingsManager::getInstance()->getUiSound()) {
+                M5.Speaker.tone(2000, 30);
+            }
         }
     }
     
@@ -80,7 +83,10 @@ public:
                 scrollOffset = selectedIndex - maxVisibleItems + 1;
             }
             
-            // M5.Speaker.tone(2000, 30);
+            
+            if (SettingsManager::getInstance()->getUiSound()) {
+                M5.Speaker.tone(2000, 30);
+            }
         }
     }
     
@@ -90,9 +96,11 @@ public:
             MenuItem& item = items[selectedIndex];
             
             if (item.enabled && item.callback != nullptr) {
-                M5.Speaker.tone(2500, 50);
-                delay(50);
-                M5.Speaker.tone(3000, 50);
+                if (SettingsManager::getInstance()->getUiSound()) {
+                    M5.Speaker.tone(2500, 50);
+                    delay(50);
+                    M5.Speaker.tone(3000, 50);
+                }
                 
                 item.callback();
             }

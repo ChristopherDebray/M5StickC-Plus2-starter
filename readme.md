@@ -105,6 +105,91 @@ Power management and battery monitoring:
 - ⬜ Configurable auto-sleep on idle
 - ⬜ Wake on button press
 
+#### `time_selector.h`
+Interactive time/value selection interface:
+
+✅ **Three configuration modes:**
+
+- Seconds only (5-60s range, ideal for timers)
+
+- Hours + Minutes (0-23h, 0-59m, for time setting)
+- Hours + Minutes + Seconds (full time configuration)
+
+- ✅ Menu-style navigation
+
+
+✅ **Visual feedback:**
+
+- Current value (large, center)
+
+- Preview of previous/next values
+- Field label (Hours/Minutes/Seconds)
+- Progress indicator (1/2, 2/2, etc.)
+
+
+- ✅ Value wrapping: Automatically loops (59→0, 0→59)
+
+- ✅ Callback system: Execute custom code when selection is complete
+
+Example Usage:
+```cpp
+// Configure for seconds selection (auto-sleep delay)
+timeSelector->configureSeconds(15, 5, 120);  // Default: 15s, Range: 5-120s
+
+timeSelector->setOnComplete([](TimeValue result) {
+    settings->setAutoSleepDelay(result.seconds);
+});
+
+timeSelector->start();
+```
+
+Example Usage (Time Setting):
+```cpp
+// Configure for time setting
+timeSelector->configureHoursMinutes(14, 30);  // Default: 14:30
+
+timeSelector->setOnComplete([](TimeValue result) {
+    rtcSetTime(result.hours, result.minutes, 0);
+});
+
+timeSelector->start();
+```
+
+#### `settings_manager.h`
+
+Persistent settings with Preferences (EEPROM):
+
+✅ **UI Settings:**
+- Sound effects (on/off)
+
+
+✅ **Power Management:**
+
+- Auto-sleep (on/off)
+
+- Auto-sleep delay (5-120 seconds, configurable)
+- Inactivity timer with automatic reset
+
+
+✅ **Data Persistence:** All settings saved to flash memory
+
+- ✅ **Singleton Pattern:** Single instance accessible everywhere
+
+- ✅ **Easy Integration:** Simple getter/setter methods
+
+Example Usage:
+```cpp
+SettingsManager* settings = SettingsManager::getInstance();
+
+// Check if auto-sleep should trigger
+if (settings->shouldGoToSleep()) {
+    batteryHandler.M5deepSleep();
+}
+
+// Reset inactivity timer on user interaction
+settings->resetInactivityTimer();
+```
+
 #### `menu_handler.h`
 Individual menu creation and interaction:
 - ✅ Add menu items with callbacks
@@ -119,6 +204,61 @@ Real-Time Clock utilities:
 - ✅ Convert system time to RTC format
 - ✅ Get current epoch time
 - ✅ Set RTC time and date
+
+### 🎨 UI Components
+
+#### TimeSelector Widget
+
+The TimeSelector provides a reusable interface for selecting time values with an intuitive, menu-like experience.
+Key Features:
+
+- Flexible Configuration: Seconds-only, Hours+Minutes, or full Hours+Minutes+Seconds
+
+- Smart Navigation: PWR/B buttons for up/down, with automatic value wrapping
+- Visual Clarity: Large centered value with preview of adjacent values
+- Progress Tracking: Shows current field (e.g., "1/2" when setting hours)
+- Callback-Driven: Execute custom logic when selection is complete
+
+**Common Use Cases:**
+
+- Auto-Sleep Configuration: Select delay in seconds (5-60s)
+
+- Manual Time Setting: Set hours and minutes separately
+- Timer Configuration: Set countdown duration
+- Any Numeric Input: Easily adaptable for other value ranges
+
+Integration with Pages:
+
+```cpp
+class YourPage : public PageBase {
+private:
+    TimeSelector* timeSelector;
+    
+    void onButtonPWRPressed() override {
+        if (timeSelector->isActive()) {
+            timeSelector->navigateUp();
+        } else if (hasActiveMenu()) {
+            navigateMenuUp();
+        }
+    }
+    
+    void onButtonBShortPress() override {
+        if (timeSelector->isActive()) {
+            timeSelector->navigateDown();
+        } else if (hasActiveMenu()) {
+            navigateMenuDown();
+        }
+    }
+    
+    void onButtonAPressed() override {
+        if (timeSelector->isActive()) {
+            timeSelector->select();
+        } else if (hasActiveMenu()) {
+            selectMenuItem();
+        }
+    }
+};
+```
 
 ### 🎛️ Managers
 
@@ -150,7 +290,13 @@ Page lifecycle management:
   - ⬜ Start Pomodoro timer
   - ⬜ Set custom timer
   - ⬜ Configure time/date
-  - ⬜ Settings submenu
+    - ✅ Configure time
+    - ⬜ Configure date
+  - ✅ Settings submenu
+    - ✅ UI Sound toggle (on/off)
+    
+    - ✅ Auto-sleep toggle (on/off)
+    - ✅ Auto-sleep delay configuration (5-120 seconds)
 
 #### Menu Page (`menu_page.h`)
 - ✅ Example page demonstrating menu system
@@ -245,7 +391,7 @@ pageManager.addPage(&yourPage);
 ### Adding Menu Items with Callbacks
 ```cpp
 mainMenu->addItem("My Action", [this]() {
-    display->showFullScreenMessage("Action", "Executed!", MSG_SUCCESS, 1000);
+    display->showFullScreenMessage("Action", "Executed!", MSG_SUCCESS, 1000);⚠️ Known Issues & Fixes
 });
 ```
 
@@ -266,6 +412,54 @@ void onOpenSettings() {
     menuManager->pushMenu(settingsMenu);
 }
 ```
+
+## ⚠️ Known Issues & Fixes
+
+### Button Detection Issues (PWR and B buttons)
+
+**Problem:** On M5StickC Plus 2, M5.BtnPWR.wasPressed() and M5.BtnB.wasPressed() may not trigger reliably in some contexts.
+
+**Root Cause:** These buttons can get "stuck" in a pressed state internally, preventing wasPressed() from detecting new presses.
+
+**Solution:** I implemented manual edge detection in `PageBase::handleBasicInputInteractions()`:
+
+```cpp
+// Instead of relying on wasPressed()
+bool currentPWRState = M5.BtnPWR.isPressed();
+if (currentPWRState && !lastBtnPWRState) {  // Rising edge
+    onButtonPWRPressed();
+}
+lastBtnPWRState = currentPWRState;
+```
+
+This approach detects state changes (rising/falling edges) manually, providing reliable button input across all contexts (menus, TimeSelector, etc.).
+
+**Impact:** All button inputs now work consistently, including:
+
+- Menu navigation
+- TimeSelector value adjustment
+- Long press detection (B button)
+
+### Deep Sleep GPIO Hold
+
+**Problem:** M5StickC Plus 2 loses power immediately after entering deep sleep.
+
+**Root Cause:** GPIO4 must remain HIGH during deep sleep to maintain power rail.
+
+**Solution:** Implemented in battery_handler.h:
+
+```cpp
+pinMode(4, OUTPUT);
+digitalWrite(4, HIGH);
+gpio_hold_en(GPIO_NUM_4);         // Hold GPIO state
+gpio_deep_sleep_hold_en();        // Maintain during deep sleep
+```
+
+**Impact:** Device now properly enters deep sleep while maintaining power, enabling:
+
+- Timer wakeup
+- Low-power standby mode
+- Extended battery life
 
 ## 🤝 Contributing
 

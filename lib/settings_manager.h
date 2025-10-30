@@ -17,9 +17,6 @@ private:
         bool uiSound;
         uint8_t brightness;
         bool time24h;
-        uint8_t pomodoroMinutes;
-        uint8_t shortBreakMinutes;
-        uint8_t longBreakMinutes;
         bool autoSleep;
         uint16_t autoSleepDelay;
     } cache;
@@ -62,13 +59,11 @@ public:
     uint16_t getAutoSleepDelay() { return cache.autoSleepDelay; }
     
     // SETTERS (update cache + save to NVS)
-    
     void setUiSound(bool value) {
         cache.uiSound = value;
         prefs.begin("settings", false);
         prefs.putBool("ui_sound", value);
         prefs.end();
-        Serial.printf("UI Sound: %s\n", value ? "ON" : "OFF");
     }
     
     void setTime24h(bool value) {
@@ -128,7 +123,7 @@ public:
         Serial.printf("UI Sound: %s\n", cache.uiSound ? "ON" : "OFF");
         Serial.printf("Time Format: %s\n", cache.time24h ? "24h" : "12h");
         Serial.printf("Auto Sleep: %s\n", cache.autoSleep ? "ON" : "OFF");
-        Serial.printf("Sleep Delay: %d sec\n", cache.autoSleepDelay);
+        Serial.printf("Sleep Delay: %d s\n", cache.autoSleepDelay);
         Serial.println("========================");
     }
 };

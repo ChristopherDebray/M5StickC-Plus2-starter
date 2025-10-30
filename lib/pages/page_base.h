@@ -21,6 +21,10 @@ protected:
     const unsigned long LONG_PRESS_DURATION = 800;
     bool btnBLongPressTriggered;
     
+    // ✅ Variables pour détecter les fronts montants manuellement
+    bool lastBtnBState;
+    bool lastBtnPWRState;
+    
     // Virtual methods for custom button behavior
     
     // Default: navigate menu down
@@ -61,6 +65,8 @@ public:
         settings = SettingsManager::getInstance();
         btnBPressStart = 0;
         btnBLongPressTriggered = false;
+        lastBtnBState = false;
+        lastBtnPWRState = false;
     }
     
     virtual ~PageBase() {
@@ -81,29 +87,37 @@ public:
     
     bool isInitialized() { return initialized; }
     void setInitialized(bool value) { initialized = value; }
+
+    virtual void handleInput() {}
     
-    // Input handling - called by PageManager
-    void handleInput() {
-        // Button PWR
-        if (M5.BtnPWR.wasPressed()) {
-            settings->resetInactivityTimer();
-            onButtonPWRPressed();
-        }
-        
-        // Button A
+    // Basic input handling - to call inside of handleInput in each page
+    void handleBasicInputInteractions() {
+        // ✅ Button A (fonctionne avec wasPressed)
         if (M5.BtnA.wasPressed()) {
             settings->resetInactivityTimer();
             onButtonAPressed();
         }
         
-        // Button B with long press detection
-        if (M5.BtnB.wasPressed()) {
+        // ✅ Button PWR - Détection manuelle du front montant
+        bool currentPWRState = M5.BtnPWR.isPressed();
+        if (currentPWRState && !lastBtnPWRState) {
+            settings->resetInactivityTimer();
+            onButtonPWRPressed();
+        }
+        lastBtnPWRState = currentPWRState;
+        
+        // ✅ Button B - Détection manuelle avec gestion du long press
+        bool currentBState = M5.BtnB.isPressed();
+        
+        // Front montant (bouton vient d'être pressé)
+        if (currentBState && !lastBtnBState) {
             settings->resetInactivityTimer();
             btnBPressStart = millis();
             btnBLongPressTriggered = false;
         }
         
-        if (M5.BtnB.isPressed()) {
+        // Bouton maintenu (détection long press)
+        if (currentBState) {
             unsigned long pressDuration = millis() - btnBPressStart;
             
             if (pressDuration >= LONG_PRESS_DURATION && !btnBLongPressTriggered) {
@@ -112,11 +126,14 @@ public:
             }
         }
         
-        if (M5.BtnB.wasReleased()) {
+        // Front descendant (bouton vient d'être relâché)
+        if (!currentBState && lastBtnBState) {
             if (!btnBLongPressTriggered) {
                 onButtonBShortPress();
             }
         }
+        
+        lastBtnBState = currentBState;
     }
     
     // Menu management

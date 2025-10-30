@@ -192,6 +192,17 @@ public:
         M5.Display.setCursor(x, y);
         M5.Display.print(text);
     }
+
+    void drawCenteredText(const char* text, int y, uint16_t color, int textSize = 2) {
+        M5.Display.setTextSize(textSize);
+        M5.Display.setTextColor(color);
+        
+        int textWidth = strlen(text) * 6 * textSize;
+        int x = (SCREEN_WIDTH - textWidth) / 2;
+        
+        M5.Display.setCursor(x, y);
+        M5.Display.print(text);
+    }
     
     // Display formatted text (like printf)
     void displayFormatted(DisplayZone zone, int textSize, MessageType type, 

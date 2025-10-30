@@ -21,7 +21,33 @@ uint32_t rtcEpochNow() {
   return (uint32_t)tt;
 }
 
-// Set RTC time
+uint8_t rtcGetHours() {
+  m5::rtc_datetime_t dt;
+  M5.Rtc.getDateTime(&dt);
+  return dt.time.hours;
+}
+
+uint8_t rtcGetMinutes() {
+  m5::rtc_datetime_t dt;
+  M5.Rtc.getDateTime(&dt);
+  return dt.time.minutes;
+}
+
+uint8_t rtcGetSeconds() {
+  m5::rtc_datetime_t dt;
+  M5.Rtc.getDateTime(&dt);
+  return dt.time.seconds;
+}
+
+void rtcSetTime(uint8_t hours, uint8_t minutes, uint8_t seconds) {
+  m5::rtc_time_t time;
+  time.hours = hours;
+  time.minutes = minutes;
+  time.seconds = seconds;
+  
+  M5.Rtc.setTime(&time);
+}
+
 void setRTCTime(int hours, int minutes, int seconds, 
                 int year, int month, int day, int weekDay = 0) {
   m5::rtc_time_t time;

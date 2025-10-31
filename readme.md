@@ -70,6 +70,44 @@ For clarity and consistency with the M5Unified library documentation:
 - ⬜ Configurable navigation sounds
 - ⬜ Custom tone selection
 
+#### Wifi helper
+
+> **⚠️ This is a modified version from another personnal project, i didn't had time to test this version for now ⚠️**
+
+- ✅ WiFi connection with timeout after 10s
+- ✅ getIp
+- ✅ getSignalStrenght
+
+
+### Optional systems
+
+#### MQTT helper
+
+> **⚠️ This is a modified version from another personnal project, i didn't had time to test this version for now ⚠️**
+
+- MQTT Helper - Simplified MQTT client wrapper
+
+**Features:**
+
+    - Auto-reconnect on disconnect
+
+    - JSON payload support
+    - Callback system for messages
+    - QoS support
+
+**Dependencies:**
+
+- AsyncMqttClient library
+
+- ArduinoJson library
+
+> Add to platformio.ini:
+```
+  lib_deps = 
+    marvinroger/AsyncMqttClient@^0.8.1
+    bblanchon/ArduinoJson@^7.4.2
+```
+
 ### 🧩 Handlers
 
 #### `clock_handler.h`

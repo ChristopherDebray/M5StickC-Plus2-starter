@@ -13,18 +13,25 @@ private:
     int pageCount;
     int currentPageIndex;
     PageBase* currentPage;
-    
+
     bool transitionInProgress;
-    
+
+    // Manual rising-edge tracking for PWR and B buttons.
+    // wasPressed() is unreliable on these two buttons (gets stuck internally).
+    bool lastBtnPWRState;
+    bool lastBtnBState;
+
 public:
     PageManager() {
         pageCount = 0;
         currentPageIndex = -1;
         currentPage = nullptr;
         transitionInProgress = false;
+        lastBtnPWRState = false;
+        lastBtnBState = false;
     }
-    
-    // Register a new page to the pull
+
+    // Register a new page to the pool
     bool addPage(PageBase* page) {
         if (pageCount >= MAX_PAGES) {
             return false;
@@ -87,23 +94,39 @@ public:
         }
     }
 
-    // Handle inputs - delegates to current page or handles page navigation
+    // Handle inputs - delegates to current page or handles page navigation.
+    // PWR = previous page, B = next page (only when no menu is active).
+    // Rising-edge detection used for PWR and B — wasPressed() is buggy on those.
     void handleInput() {
         if (currentPage == nullptr || transitionInProgress) return;
-        
+
+        bool currentPWRState = M5.BtnPWR.isPressed();
+        bool currentBState   = M5.BtnB.isPressed();
+
         if (!currentPage->hasActiveMenu()) {
-            if (M5.BtnPWR.wasPressed()) {
+            // PWR rising edge → previous page
+            if (currentPWRState && !lastBtnPWRState) {
+                lastBtnPWRState = currentPWRState;
+                lastBtnBState   = currentBState;
                 previousPage();
                 return;
             }
-    
-            if (M5.BtnB.wasPressed()) {
+
+            // B rising edge → next page
+            if (currentBState && !lastBtnBState) {
+                lastBtnPWRState = currentPWRState;
+                lastBtnBState   = currentBState;
                 nextPage();
                 return;
             }
         }
-        
-        // Otherwise, let the page handle input
+
+        // Always update state before delegating so the page's own
+        // handleBasicInputInteractions() sees a consistent button state.
+        lastBtnPWRState = currentPWRState;
+        lastBtnBState   = currentBState;
+
+        // Let the current page handle the input
         currentPage->handleInput();
     }
     

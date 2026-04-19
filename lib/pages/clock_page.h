@@ -2,22 +2,24 @@
 #define CLOCK_PAGE_H
 
 #include "page_base.h"
-#include "../clock_handler.h"
-#include "../battery_handler.h"
+#include "../ports/clock_handler_port.h"
+#include "../ports/battery_handler_port.h"
+#include "../ports/time_selector_port.h"
+#include "../ports/rtc_utils_port.h"
+#include "../dependancies/time_selector_deps.h"
 #include "../settings_manager.h"
-#include "../time_selector.h"
-#include "../rtc_utils.h"
 
 class ClockPage : public PageBase {
 private:
-    ClockHandler* clockHandler;
-    BatteryHandler* batteryHandler;
+    IClockHandler* clockHandler;
+    IBatteryHandler* batteryHandler;
     
     unsigned long lastClockUpdate;
     uint32_t clockRefreshInterval;
     
-    MenuHandler* settingsMenu;
-    TimeSelector* timeSelector;
+    IMenuHandler*  settingsMenu;
+    ITimeSelector* timeSelector;
+    IRtcUtils*     rtcUtils;
     
     char soundLabel[32];
     char timeFormatLabel[32];
@@ -48,7 +50,7 @@ private:
     
     void rebuildSettingsMenu() {
         if (!settingsMenu) {
-            settingsMenu = new MenuHandler(display, "Settings");
+            settingsMenu = getM5StickMenuHandler(display, "Settings");
         } else {
             settingsMenu->clear();
         }
@@ -144,14 +146,14 @@ private:
     void onSetTime() {
         menuManager->closeAll();
         
-        uint8_t currentHour = rtcGetHours();
-        uint8_t currentMinute = rtcGetMinutes();
+        uint8_t currentHour   = rtcUtils->getHours();
+        uint8_t currentMinute = rtcUtils->getMinutes();
         
         timeSelector->configureHoursMinutes(currentHour, currentMinute);
         
         timeSelector->setOnComplete([this](TimeValue result) {
             // Udpate RTC with new time, keep seconds to 0 just to simplify
-            rtcSetTime(result.hours, result.minutes, 0);
+            rtcUtils->setTime(result.hours, result.minutes, 0);
             
             char msg[32];
             sprintf(msg, "%02d:%02d", result.hours, result.minutes);
@@ -192,18 +194,19 @@ private:
     }
     
 public:
-    ClockPage(DisplayHandler* disp, ClockHandler* clock, BatteryHandler* battery)
+    ClockPage(IDisplayHandler* disp, IClockHandler* clock, IBatteryHandler* battery, IRtcUtils* rtc)
         : PageBase(disp, "Clock Menu"),
           clockHandler(clock),
           batteryHandler(battery),
+          rtcUtils(rtc),
           settingsMenu(nullptr) {
-        
+
         settings = SettingsManager::getInstance();
-        
+
         lastClockUpdate = 0;
         clockRefreshInterval = 1000;
-        
-        timeSelector = new TimeSelector(display, "Set Time");
+
+        timeSelector = getM5StickTimeSelector(display, "Set Time");
         
         updateMenuLabels();
         rebuildMainMenu();
@@ -239,7 +242,7 @@ public:
             uint32_t remain = 0;
             
             if (target) {
-                uint32_t nowE = rtcEpochNow();
+                uint32_t nowE = rtcUtils->epochNow();
                 if (nowE < target) {
                     remain = target - nowE;
                 } else {
@@ -261,7 +264,7 @@ public:
         return "Clock";
     }
     
-    ClockHandler* getClockHandler() { return clockHandler; }
+    IClockHandler* getClockHandler() { return clockHandler; }
 };
 
 #endif

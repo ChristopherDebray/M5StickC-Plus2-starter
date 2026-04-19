@@ -3,17 +3,18 @@
 
 #include <M5Unified.h>
 #include <Arduino.h>
-#include "../display_handler.h"
-#include "../menu_manager.h"
-#include "../menu_handler.h"
+#include "../ports/display_handler_port.h"
+#include "../ports/menu_manager_port.h"
+#include "../dependancies/menu_handler_deps.h"
+#include "../dependancies/menu_manager_deps.h"
 #include "../settings_manager.h"
 
 class PageBase {
 protected:
     bool initialized;
-    DisplayHandler* display;
-    MenuManager* menuManager;
-    MenuHandler* mainMenu;
+    IDisplayHandler* display;
+    IMenuManager* menuManager;
+    IMenuHandler* mainMenu;
     SettingsManager* settings;
     
     // Button B long press tracking
@@ -58,10 +59,10 @@ protected:
     }
     
 public:
-    PageBase(DisplayHandler* disp, const char* menuTitle = "Options") 
+    PageBase(IDisplayHandler* disp, const char* menuTitle = "Options") 
         : initialized(false), display(disp) {
-        menuManager = new MenuManager(disp);
-        mainMenu = new MenuHandler(disp, menuTitle);
+        menuManager = getM5StickMenuManager(disp);
+        mainMenu = getM5StickMenuHandler(disp, menuTitle);
         settings = SettingsManager::getInstance();
         btnBPressStart = 0;
         btnBLongPressTriggered = false;
@@ -180,9 +181,9 @@ public:
         }
     }
     
-    MenuManager* getMenuManager() { return menuManager; }
-    MenuHandler* getMainMenu() { return mainMenu; }
-    DisplayHandler* getDisplay() { return display; }
+    IMenuManager* getMenuManager() { return menuManager; }
+    IMenuHandler* getMainMenu() { return mainMenu; }
+    IDisplayHandler* getDisplay() { return display; }
 };
 
 #endif

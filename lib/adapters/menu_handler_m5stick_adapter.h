@@ -5,7 +5,7 @@
 #include <Arduino.h>
 #include <functional>
 #include "../ports/menu_handler_port.h"
-#include "../display_handler.h"
+#include "../ports/display_handler_port.h"
 #include "../settings_manager.h"
 
 #define MAX_MENU_ITEMS 10
@@ -21,7 +21,7 @@ struct MenuItem {
 
 class MenuHandlerM5StickAdapter : public IMenuHandler {
 public:
-    MenuHandlerM5StickAdapter(DisplayHandler* disp, const char* menuTitle = "Menu")
+    MenuHandlerM5StickAdapter(IDisplayHandler* disp, const char* menuTitle = "Menu")
         : _display(disp), _title(menuTitle),
           _itemCount(0), _selectedIndex(0), _scrollOffset(0), _maxVisibleItems(4) {}
 
@@ -128,7 +128,7 @@ public:
     }
 
 private:
-    DisplayHandler* _display;
+    IDisplayHandler* _display;
     const char*     _title;
     MenuItem        _items[MAX_MENU_ITEMS];
     int             _itemCount;

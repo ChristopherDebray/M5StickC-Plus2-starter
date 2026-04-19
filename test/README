@@ -9,3 +9,9 @@ in the development cycle.
 
 More information about PlatformIO Unit Testing:
 - https://docs.platformio.org/en/latest/advanced/unit-testing/index.html
+
+To launch tests with M5StickC plugged in:
+  ~/.platformio/penv/bin/pio test -e m5stick-c -f test_page_manager
+
+For to suites:
+  ~/.platformio/penv/bin/pio test -e m5stick-c

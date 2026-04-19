@@ -3,20 +3,21 @@
 #include <Preferences.h>
 
 #include "../lib/settings_manager.h"
-#include "../lib/display_handler.h"
-#include "../lib/battery_handler.h"
-#include "../lib/rtc_utils.h"
-#include "../lib/clock_handler.h"
-#include "../lib/page_manager.h"
+#include "../lib/dependancies/display_handler_deps.h"
+#include "../lib/dependancies/battery_handler_deps.h"
+#include "../lib/dependancies/rtc_utils_deps.h"
+#include "../lib/dependancies/clock_handler_deps.h"
+#include "../lib/dependancies/page_manager_deps.h"
 #include "../lib/pages/clock_page.h"
 
-DisplayHandler displayHandler;
-ClockHandler clockHandler(&displayHandler);
-BatteryHandler batteryHandler(&displayHandler);
+IDisplayHandler* displayHandler = getM5StickDisplayHandler();
+IBatteryHandler* batteryHandler = getM5StickBatteryHandler(displayHandler);
+IRtcUtils*       rtcUtils       = getM5StickRtcUtils();
+IClockHandler*   clockHandler   = getM5StickClockHandler(displayHandler, batteryHandler, rtcUtils);
+IPageManager*    pageManager    = getM5StickPageManager();
 
-PageManager pageManager;
 SettingsManager* settings;
-ClockPage* clockPage = nullptr;
+ClockPage*       clockPage = nullptr;
 
 void beepAlarm() {
   M5.Speaker.begin();
@@ -33,34 +34,31 @@ void setup() {
   M5.begin(cfg);
   M5.Display.setRotation(3);
   Serial.begin(115200);
-  
+
   settings = SettingsManager::getInstance();
   settings->begin();
-  batteryHandler.begin();
+  batteryHandler->begin();
 
-  clockPage = new ClockPage(&displayHandler, &clockHandler, &batteryHandler);
-  pageManager.addPage(clockPage);
+  clockPage = new ClockPage(displayHandler, clockHandler, batteryHandler, rtcUtils);
+  pageManager->addPage(clockPage);
 
-  // @todo add a tag system using pref maybe to allow for different actions based of tags
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_TIMER) {
-    clockHandler.clearTarget();
+    clockHandler->clearTarget();
     beepAlarm();
   }
 
-  pageManager.begin();
+  pageManager->begin();
 }
 
 void loop() {
   M5.update();
-  
-  // PageManager handles everything: input routing and page updates
-  pageManager.handleInput();
-  pageManager.update();
-  
-  // Update global handlers
-  batteryHandler.update();
+
+  pageManager->handleInput();
+  pageManager->update();
+
+  batteryHandler->update();
   if (settings->shouldGoToSleep()) {
-    batteryHandler.M5deepSleep();
+    batteryHandler->deepSleep();
   }
   delay(10);
 }
